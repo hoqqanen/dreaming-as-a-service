@@ -160,14 +160,12 @@ def one_iter_deep(net, file_path):
 def layerDream(net, file_path, iters=1, inverse_gradient=False):
     file_ext = infer_file_type(file_path)
     frame = np.float32(PIL.Image.open(file_path))
-    h, w = img.shape[:2]
+    h, w = frame.shape[:2]
     s = 0.05 # scale coefficient
-    frame_i = 0
     iters = int(iters)
     for i in xrange(iters):
-        frame = deepdream(net, frame, inverse_gradient)
-        #PIL.Image.fromarray(np.uint8(frame)).save("frames/%04d.jpg"%frame_i)
+ 	print "RUN ITER: ", i
+        frame = deepdream(net, frame, inverse_gradient=inverse_gradient)
         frame = nd.affine_transform(frame, [1-s,1-s,1], [h*s/2,w*s/2,0], order=1)
-        frame_i += 1
 
     return numpyImageToStr(frame, file_ext)  

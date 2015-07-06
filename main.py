@@ -16,16 +16,16 @@ def make_dream():
         filename = 'tmp/%s' % key
         with open(filename, 'wb') as file:
             file.write(request.files[key].read())
-	num_iterations = request.params.get('iters', 1)
-   	inverse_gradient = request.params.get('inverse_gradient', False)
+	num_iterations = request.args.get('iters', 1)
+   	inverse_gradient = request.args.get('inverse_gradient', 0)
+	if int(inverse_gradient):
+	    inverse_gradient = True
+	else: 
+	    inverse_gradient = False
         return deepdream_test.layerDream(net, filename, num_iterations, inverse_gradient)
     #else if request.method == 'GET' and request.params['image_url']:
         # TODO: add the ability to dreamify a url image
     return 'No image found.'
-
-@app.route('/hello')
-def say_hello():
-    print "HELLO WORLD"
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
