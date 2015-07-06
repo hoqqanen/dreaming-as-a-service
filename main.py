@@ -1,12 +1,12 @@
 from flask import Flask, g, request
 
-from dream import *
+from deepdream_test import *
 
 app = Flask(__name__)
 
 @app.before_first_request
 def load_model():
-    g.net = dream.create_classifier('../caffe/models/bvlc_googlenet/')
+    g.net = deepdream_test.make_net('../caffe/models/bvlc_googlenet/')
 
 @app.route('/', methods=['GET', 'POST'])
 def make_dream():
@@ -15,7 +15,7 @@ def make_dream():
         filename = 'tmp/%s' % key
         with open(filename, 'wb') as file:
             file.write(request.files[key].read())
-        return dream.deepdream(g.net, filename)
+        return deepdream_test.one_iter_deep(g.net, filename)
     #else if request.method == 'GET' and request.params['image_url']:
         # TODO: add the ability to dreamify a url image
     return 'No image found.'
