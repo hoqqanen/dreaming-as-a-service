@@ -48,7 +48,7 @@ def preprocess(net, img):
 def deprocess(net, img):
     return np.dstack((img + net.mean['data'])[::-1])
 
-def make_step(net, step_size=1.5, end='inception_4c/output', jitter=32, clip=True):
+def make_step(net, step_size=1.5, end='inception_4c/output', jitter=32, clip=True, inverse_gradient=False):
     '''Basic gradient ascent step.'''
 
     src = net.blobs['data'] # input image is stored in Net's 'data' blob
@@ -62,7 +62,10 @@ def make_step(net, step_size=1.5, end='inception_4c/output', jitter=32, clip=Tru
     net.backward(start=end)
     g = src.diff[0]
     # apply normalized ascent step to the input image
-    src.data[:] += step_size/np.abs(g).mean() * g
+    if inverse_gradient:
+        src.data[:] -= step_size/np.abs(g).mean() * g
+    else:
+        src.data[:] += step_size/np.abs(g).mean() * g
 
     src.data[0] = np.roll(np.roll(src.data[0], -ox, -1), -oy, -2) # unshift image
 
@@ -70,7 +73,7 @@ def make_step(net, step_size=1.5, end='inception_4c/output', jitter=32, clip=Tru
         bias = net.mean['data']
         src.data[:] = np.clip(src.data, -bias, 255-bias)
 
-def deepdream(net, base_img, iter_n=10, octave_n=4, octave_scale=1.4, end='inception_4c/output', clip=True, **step_params):
+def deepdream(net, base_img, iter_n=10, octave_n=4, octave_scale=1.4, end='inception_4c/output', clip=True, inverse_gradient=False, **step_params):
     # prepare base images for all octaves
     octaves = [preprocess(net, base_img)]
     for i in xrange(octave_n-1):
@@ -88,14 +91,14 @@ def deepdream(net, base_img, iter_n=10, octave_n=4, octave_scale=1.4, end='incep
         src.reshape(1,3,h,w) # resize the network's input image size
         src.data[0] = octave_base+detail
         for i in xrange(iter_n):
-            make_step(net, end=end, clip=clip, **step_params)
+            make_step(net, end=end, clip=clip, inverse_gradient=inverse_gradient, **step_params)
 
             # visualization
             vis = deprocess(net, src.data[0])
             if not clip: # adjust image contrast if clipping is disabled
                 vis = vis*(255.0/np.percentile(vis, 99.98))
             #showarray(vis)
-	    saveImage(vis, octave, i)
+	    #saveImage(vis, octave, i)
             print octave, i, end, vis.shape
             clear_output(wait=True)
 
@@ -115,6 +118,8 @@ def recursive_dream(net, file_path):
         frame = nd.affine_transform(frame, [1-s,1-s,1], [h*s/2,w*s/2,0], order=1)
         frame_i += 1
 
+    
+
 FILE_EXTENSIONS = {
     "jpg" : "jpeg",
     "jpeg" : "jpeg",
@@ -122,6 +127,23 @@ FILE_EXTENSIONS = {
     "png" : "png",
     "PNG" : "png"
 }
+
+def infer_file_type(file_path):
+    try:
+        file_end = file_path.split(".")[1]
+	file_ext = FILE_EXTENSIONS[file_end]
+    except:
+	print "unrecognized file type"
+	return
+    return file_ext
+
+def numpyImageToStr(img, file_type):
+    pil_image = PIL.Image.fromarray(np.uint8(img))
+    output = StringIO()
+    pil_image.save(output, file_type)
+    contents = output.getvalue()
+    output.close()
+    return contents
 
 def one_iter_deep(net, file_path):
     try:
@@ -133,9 +155,19 @@ def one_iter_deep(net, file_path):
 
     img = np.float32(PIL.Image.open(file_path))
     img_out = deepdream(net, img)
-    pil_image = PIL.Image.fromarray(np.uint8(img_out))
-    output = StringIO()
-    pil_image.save(output, file_ext)
-    contents = output.getvalue()
-    output.close()
-    return contents
+    return numpyImageToStr(img_out, file_ext)	
+
+def layerDream(net, file_path, iters=1, inverse_gradient=False):
+    file_ext = infer_file_type(file_path)
+    frame = np.float32(PIL.Image.open(file_path))
+    h, w = img.shape[:2]
+    s = 0.05 # scale coefficient
+    frame_i = 0
+    iters = int(iters)
+    for i in xrange(iters):
+        frame = deepdream(net, frame, inverse_gradient)
+        #PIL.Image.fromarray(np.uint8(frame)).save("frames/%04d.jpg"%frame_i)
+        frame = nd.affine_transform(frame, [1-s,1-s,1], [h*s/2,w*s/2,0], order=1)
+        frame_i += 1
+
+    return numpyImageToStr(frame, file_ext)  

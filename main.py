@@ -16,7 +16,9 @@ def make_dream():
         filename = 'tmp/%s' % key
         with open(filename, 'wb') as file:
             file.write(request.files[key].read())
-        return deepdream_test.one_iter_deep(net, filename)
+	num_iterations = request.params.get('iters', 1)
+   	inverse_gradient = request.params.get('inverse_gradient', False)
+        return deepdream_test.layerDream(net, filename, num_iterations, inverse_gradient)
     #else if request.method == 'GET' and request.params['image_url']:
         # TODO: add the ability to dreamify a url image
     return 'No image found.'
