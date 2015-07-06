@@ -2,6 +2,7 @@
 import argparse
 import os
 import requests
+import sys
 
 parser = argparse.ArgumentParser(
   description='Send a request to the Dreaming as a Service server.')
