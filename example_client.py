@@ -30,7 +30,7 @@ for assignment in args.params.split(","):
 
 url = "http://%s/" % args.server
 response = requests.post(url, params=params, files=files)
-if r.status_code == 200:
+if response.status_code == 200:
   image_content = response.content
 
   output_file = open(args.output_file_name, 'wb')
@@ -38,5 +38,5 @@ if r.status_code == 200:
   output_file.close()
   print "Done."
 else:
-  print "Error %d." % r.status_code
+  print "Error %d." % response.status_code
 
