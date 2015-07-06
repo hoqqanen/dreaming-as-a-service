@@ -21,13 +21,12 @@ def saveImage(a, octave, i, file_root="test_2", fmt='jpeg'):
     filename = file_root + str(octave) + "_" + str(i) + ".jpg"
     img.save(filename)
 
-model_path = '../caffe/models/bvlc_googlenet/' # substitute your path here
-net_fn   = model_path + 'deploy.prototxt'
-param_fn = model_path + 'bvlc_googlenet.caffemodel'
-
+#model_path = '../caffe/models/bvlc_googlenet/' # substitute your path here
 # Patching model to be able to compute gradients.
 # Note that you can also manually add "force_backward: true" line to "deploy.prototxt".
-def make_net():
+def make_net(model_path):
+    net_fn   = model_path + 'deploy.prototxt'
+    param_fn = model_path + 'bvlc_googlenet.caffemodel'
     model = caffe.io.caffe_pb2.NetParameter()
     text_format.Merge(open(net_fn).read(), model)
     model.force_backward = True
@@ -96,7 +95,7 @@ def deepdream(net, base_img, iter_n=10, octave_n=4, octave_scale=1.4, end='incep
             if not clip: # adjust image contrast if clipping is disabled
                 vis = vis*(255.0/np.percentile(vis, 99.98))
             #showarray(vis)
-	    saveImage(vis, octave, i, end)
+	    saveImage(vis, octave, i)
             print octave, i, end, vis.shape
             clear_output(wait=True)
 
@@ -116,7 +115,27 @@ def recursive_dream(net, file_path):
         frame = nd.affine_transform(frame, [1-s,1-s,1], [h*s/2,w*s/2,0], order=1)
         frame_i += 1
 
+FILE_EXTENSIONS = {
+    "jpg" : "jpeg",
+    "jpeg" : "jpeg",
+    "JPG" : "jpeg",
+    "png" : "png",
+    "PNG" : "png"
+}
+
 def one_iter_deep(net, file_path):
+    try:
+        file_end = file_path.split(".")[1]
+	file_ext = FILE_EXTENSIONS[file_end]
+    except:
+	print "unrecognized file type"
+	return
+
     img = np.float32(PIL.Image.open(file_path))
     img_out = deepdream(net, img)
-    return img_out
+    pil_image = PIL.Image.fromarray(np.uint8(img_out))
+    output = StringIO()
+    pil_image.save(output, file_ext)
+    contents = output.getvalue()
+    output.close()
+    return contents
