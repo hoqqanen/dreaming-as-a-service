@@ -17,7 +17,7 @@ input_file = open(args.input_file_name, 'rb')
 
 files={args.input_file_name: input_file}
 
-response = requests.post('http://52.7.11.64:5000/', files=files)
+response = requests.post(url, files=files)
 image_content = response.content
 
 output_file = open(args.output_file_name, 'wb')
