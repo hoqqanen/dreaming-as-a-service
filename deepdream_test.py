@@ -7,6 +7,7 @@ from IPython.display import clear_output, Image, display
 from google.protobuf import text_format
 import re
 import caffe
+import os
 
 def showarray(a, fmt='jpeg'):
     a = np.uint8(np.clip(a, 0, 255))
@@ -170,16 +171,24 @@ def layerDream(net, file_path, iters=1, inverse_gradient=False):
 
     return numpyImageToStr(frame, file_ext)
 
-def localSaveLayerDream(filename, local_dir):
-    net = make_net('../caffe/models/bvlc_googlenet/')
-    start_file = local_dir + "/" + filename
+def localSaveLayerDream(net, filename, output_dir, iters=1):
+    start_file = filename
+    file_root = filename.split(".")[0]
     frame = np.float32(PIL.Image.open(start_file))
     h, w = frame.shape[:2]
     s = 0.05 # scale coefficient
     frame_i = 0
-    for i in xrange(95):
- 	print "ITERATION ", i
+    for i in xrange(iters):
+ 	print "ITERATION ", i, " for ", filename
         frame = deepdream(net, frame)
-        PIL.Image.fromarray(np.uint8(frame)).save(local_dir + "/%04d.jpg"%frame_i)
+        PIL.Image.fromarray(np.uint8(frame)).save(local_dir + "/" + file_root + "_%04d.jpg"%frame_i)
         frame = nd.affine_transform(frame, [1-s,1-s,1], [h*s/2,w*s/2,0], order=1)
-        frame_i += 1 
+        frame_i += 1
+
+def dreamifyImageDir(source_dir, output_dir, iters=5):
+    net = make_net('../caffe/models/bvlc_googlenet/')
+    for fn in os.listdir(source_dir):
+        if len(fn.split(".")) == 2:
+            print "Dreamifying ", fn
+	    full_filename = source_dir + "/" + fn
+	    localSaveLayerDream(net, full_filename, output_dir, iters)
