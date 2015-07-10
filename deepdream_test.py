@@ -172,16 +172,16 @@ def layerDream(net, file_path, iters=1, inverse_gradient=False):
     return numpyImageToStr(frame, file_ext)
 
 def localSaveLayerDream(net, filename, output_dir, iters=1):
-    start_file = filename
-    file_root = filename.split(".")[0]
-    frame = np.float32(PIL.Image.open(start_file))
+    file_root = filename.split("/")[1]
+    file_root = file_root.split(".")[0]
+    frame = np.float32(PIL.Image.open(filename))
     h, w = frame.shape[:2]
     s = 0.05 # scale coefficient
     frame_i = 0
     for i in xrange(iters):
  	print "ITERATION ", i, " for ", filename
         frame = deepdream(net, frame)
-        PIL.Image.fromarray(np.uint8(frame)).save(local_dir + "/" + file_root + "_%04d.jpg"%frame_i)
+        PIL.Image.fromarray(np.uint8(frame)).save(output_dir + "/" + file_root + "_%04d.jpg"%frame_i)
         frame = nd.affine_transform(frame, [1-s,1-s,1], [h*s/2,w*s/2,0], order=1)
         frame_i += 1
 
